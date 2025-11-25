@@ -1,0 +1,7 @@
+package com.example.myapplication
+
+class NameProductFilter : ProductFilter {
+    override fun filter(offers: List<ProductOffer>, query: String): List<ProductOffer> {
+        return offers.filter { it.details.contains(query, ignoreCase = true) }
+    }
+}
