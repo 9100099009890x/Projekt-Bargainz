@@ -1,0 +1,98 @@
+package com.example.myapplication
+
+
+import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var searchEditText: EditText
+    private lateinit var sortSpinner: Spinner
+    private lateinit var resultListView: ListView
+
+    private var offers = listOf<ProductOffer>()
+    private var filteredOffers = listOf<ProductOffer>()
+
+    private val productFilter: ProductFilter = NameProductFilter()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        searchEditText = findViewById(R.id.searchEditText)
+        sortSpinner = findViewById(R.id.sortSpinner)
+        resultListView = findViewById(R.id.resultListView)
+
+        offers = listOf(
+            ProductOffer("Zalando", 349.99, "Nike Air Max, czarny",
+                "https://zalando.pl", "42, 43, 44", true, 4.5),
+            ProductOffer("eObuwie", 329.00, "Nike Air Max, limitowana edycja",
+                "https://eobuwie.pl", "40, 41, 42", false, 4.2),
+            ProductOffer("Sizeer", 370.50, "Nike Air Max, model 2024",
+                "https://sizeer.pl", "41, 42, 43, 44", true, 4.7)
+        )
+        filteredOffers = offers
+        updateListView(filteredOffers)
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val query = s.toString().trim()
+                filteredOffers = productFilter.filter(offers, query)
+                updateListView(filteredOffers)
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        sortSpinner.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                filteredOffers = when (pos) {
+                    0 -> filteredOffers.sortedBy { it.price }
+                    1 -> filteredOffers.sortedByDescending { it.price }
+                    2 -> filteredOffers.sortedByDescending { it.stock }
+                    else -> filteredOffers
+                }
+                updateListView(filteredOffers)
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        resultListView.setOnItemClickListener { _, _, position, _ ->
+            val offer = filteredOffers[position]
+            val message = """
+                Sklep: ${offer.shop}
+                Cena: ${offer.price} zł
+                Szczegóły: ${offer.details}
+                Rozmiary: ${offer.sizes}
+                Dostępność: ${if (offer.stock) "Dostępny" else "Brak"}
+                Ocena: ${offer.ratings}
+            """.trimIndent()
+
+            AlertDialog.Builder(this)
+                .setTitle("Oferta produktu")
+                .setMessage(message)
+                .setPositiveButton("Przejdź do sklepu") { _, _ ->
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(offer.link))
+                    startActivity(intent)
+                }
+                .setNegativeButton("Zamknij", null)
+                .show()
+        }
+    }
+
+    private fun updateListView(list: List<ProductOffer>) {
+        val items = list.map { "${it.shop}: ${it.price} zł" }
+        resultListView.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_list_item_1,
+            items
+        )
+    }
+}
