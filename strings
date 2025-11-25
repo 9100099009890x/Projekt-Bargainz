@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string-array name="sort_options">
+        <item>Cena rosnąco</item>
+        <item>Cena malejąco</item>
+        <item>Dostępność</item>
+    </string-array>
+</resources>
