@@ -1,15 +1,17 @@
 package com.example.myapplication
 
-
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,17 +32,59 @@ class MainActivity : AppCompatActivity() {
         sortSpinner = findViewById(R.id.sortSpinner)
         resultListView = findViewById(R.id.resultListView)
 
-        offers = listOf(
-            ProductOffer("Zalando", 349.99, "Nike Air Max, czarny",
-                "https://zalando.pl", "42, 43, 44", true, 4.5),
-            ProductOffer("eObuwie", 329.00, "Nike Air Max, limitowana edycja",
-                "https://eobuwie.pl", "40, 41, 42", false, 4.2),
-            ProductOffer("Sizeer", 370.50, "Nike Air Max, model 2024",
-                "https://sizeer.pl", "41, 42, 43, 44", true, 4.7)
-        )
-        filteredOffers = offers
-        updateListView(filteredOffers)
+        // 1. Pobierz dane z API (mock JSON)
+        lifecycleScope.launch {
+            try {
+                val apiOffers = withContext(Dispatchers.IO) {
+                    RetrofitClient.instance.getOffers()
+                }
+                offers = apiOffers
+                filteredOffers = offers
+                updateListView(filteredOffers)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(
+                    this@MainActivity,
+                    "Błąd pobierania danych",
+                    Toast.LENGTH_LONG
+                ).show()
 
+                // fallback – dane lokalne, gdy API nie działa
+                offers = listOf(
+                    ProductOffer(
+                        "Zalando",
+                        349.99,
+                        "Nike Air Max, czarny",
+                        "https://zalando.pl",
+                        "42, 43, 44",
+                        true,
+                        4.5
+                    ),
+                    ProductOffer(
+                        "eObuwie",
+                        329.00,
+                        "Nike Air Max, limitowana edycja",
+                        "https://eobuwie.pl",
+                        "40, 41, 42",
+                        false,
+                        4.2
+                    ),
+                    ProductOffer(
+                        "Sizeer",
+                        370.50,
+                        "Nike Air Max, model 2024",
+                        "https://sizeer.pl",
+                        "41, 42, 43, 44",
+                        true,
+                        4.7
+                    )
+                )
+                filteredOffers = offers
+                updateListView(filteredOffers)
+            }
+        }
+
+        // 2. Szukanie po nazwie
         searchEditText.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val query = s.toString().trim()
@@ -51,8 +95,9 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
-        sortSpinner.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
+        // 3. Sortowanie
+        sortSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, pos: Int, id: Long) {
                 filteredOffers = when (pos) {
                     0 -> filteredOffers.sortedBy { it.price }
                     1 -> filteredOffers.sortedByDescending { it.price }
@@ -64,6 +109,7 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
+        // 4. Kliknięcie w ofertę
         resultListView.setOnItemClickListener { _, _, position, _ ->
             val offer = filteredOffers[position]
             val message = """
