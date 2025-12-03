@@ -1,6 +1,5 @@
 package com.example.myapplication
 
-
 data class ProductOffer(
     val shop: String,
     val price: Double,
