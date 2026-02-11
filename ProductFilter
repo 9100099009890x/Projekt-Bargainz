@@ -1,5 +1,0 @@
-package com.example.myapplication
-
-interface ProductFilter {
-    fun filter(offers: List<ProductOffer>, query: String): List<ProductOffer>
-}
